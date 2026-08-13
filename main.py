@@ -8,7 +8,7 @@ import telebot
 from telebot import types
 
 TOKEN = "8908381436:AAGeva6PKOPFPPUcx36tKUuUA4rQne5CmlM"
-DEV_LINK = "https://t.me/HANTER_XD_OFFICIAL
+DEV_LINK = "https://t.me/HANTER_XD_OFFICIAL"
 
 bot = telebot.TeleBot(TOKEN)
 logging.basicConfig(level=logging.INFO)
