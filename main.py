@@ -1,169 +1,162 @@
+import logging
 import os
-import time
+import threading
+from flask import Flask
 import requests
-import numpy as np
+import telebot
+from telebot import types
 
-# Updated Telegram Bot Token
-BOT_TOKEN = "8908381436:AAFYp7tXEZA7ygYYXYg45GhDj_djEwgy610"
-BASE_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
+# Bot Token provided by user
+TOKEN = "8908381436:AAFYp7tXEZA7ygYYXYg45GhDj_djEwgy610"
+bot = telebot.TeleBot(TOKEN)
 
-# ----------------- Real Technical Analysis Engine (Forced Direction) -----------------
-def get_real_market_analysis(symbol, timeframe):
-    try:
-        yf_symbol = symbol.replace("USDT", "-USD")
-        
-        tf_map = {"1m": "1m", "5m": "5m", "15m": "15m"}
-        interval = tf_map.get(timeframe, "1m")
-        
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_symbol}?interval={interval}&range=1d"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, timeout=10)
-        
-        if response.status_code != 200:
-            return "⚠️ Failed to fetch data from market server. Please try again later."
+logging.basicConfig(level=logging.INFO)
 
-        data = response.json()
-        result = data.get('chart', {}).get('result')
-        
-        if not result:
-            return "⚠️ Insufficient market data available."
-            
-        quotes = result[0].get('indicators', {}).get('quote', [{}])[0]
-        closes = quotes.get('close', [])
-        
-        closes = [c for c in closes if c is not None]
-        
-        if len(closes) < 30:
-            return "⚠️ Insufficient market data available."
+# 1. Flask server to satisfy Render port binding requirements
+app = Flask(__name__)
 
-        closes = np.array(closes)
 
-        def calculate_ema(prices, period):
-            weights = np.exp(np.linspace(-1., 0., period))
-            weights /= weights.sum()
-            a = np.convolve(prices, weights, mode='valid')
-            return a[-1]
+@app.route("/")
+def home():
+  return "Trading Bot is running live and healthy!"
 
-        ema_9 = calculate_ema(closes, 9)
-        ema_21 = calculate_ema(closes, 21)
 
-        deltas = np.diff(closes)
-        seed = deltas[:14]
-        up = seed[seed >= 0].sum() / 14
-        down = -seed[seed < 0].sum() / 14
-        rs = up / down if down != 0 else 0
-        rsi = 100.0 - (100.0 / (1.0 + rs))
+def run_web_server():
+  port = int(os.environ.get("PORT", 10000))
+  app.run(host="0.0.0.0", port=port)
 
-        current_price = closes[-1]
 
-        # Forced Direction Logic for Binary Options (UP or DOWN)
-        if ema_9 >= ema_21 or rsi > 50:
-            prediction = "🟢 **UP (CALL) - Buy Signal**"
-            confidence = "High"
-            reason = f"EMA and RSI ({rsi:.2f}) indicate upward momentum."
-        else:
-            prediction = "🔴 **DOWN (PUT) - Sell Signal**"
-            confidence = "High"
-            reason = f"EMA and RSI ({rsi:.2f}) indicate downward momentum."
+# 2. Real-time market data analysis function using Binance API
+def analyze_market(symbol, timeframe):
+  interval_map = {"1m": "1m", "5m": "5m", "15m": "15m"}
+  tf = interval_map.get(timeframe, "1m")
 
-        result_text = (
-            f"📊 *1-MINUTE SIGNAL ANALYSIS* 📊\n\n"
-            f"🔹 *Market/Pair:* `{symbol}`\n"
-            f"⏱ *Timeframe:* `{timeframe}`\n"
-            f"💰 *Live Price:* `{current_price:.2f}`\n\n"
-            f"📈 *Prediction:* {prediction}\n"
-            f"🎯 *Confidence:* {confidence}\n"
-            f"💡 *Reason:* {reason}"
-        )
-        return result_text
+  url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={tf}&limit=50"
 
-    except Exception as e:
-        return f"Technical error occurred: {str(e)}"
+  try:
+    response = requests.get(url, timeout=10)
+    data = response.json()
 
-# ----------------- Telegram Message Helper Functions -----------------
-def send_message(chat_id, text, reply_markup=None):
-    url = f"{BASE_URL}/sendMessage"
-    payload = {
-        "chat_id": chat_id, 
-        "text": text, 
-        "parse_mode": "Markdown"
-    }
-    if reply_markup:
-        payload["reply_markup"] = reply_markup
-    requests.post(url, json=payload)
+    if not isinstance(data, list) or len(data) < 20:
+      return None, None, None, "Not enough market data available"
 
-def edit_message(chat_id, message_id, text, reply_markup=None):
-    url = f"{BASE_URL}/editMessageText"
-    payload = {
-        "chat_id": chat_id,
-        "message_id": message_id,
-        "text": text,
-        "parse_mode": "Markdown"
-    }
-    if reply_markup:
-        payload["reply_markup"] = reply_markup
-    requests.post(url, json=payload)
+    # Extract closing prices
+    closes = [float(entry[4]) for entry in data]
+    live_price = closes[-1]
 
-# ----------------- Long Polling Loop -----------------
-def main():
-    print("Bot is running via Telegram HTTP API...")
-    offset = 0
-    user_selections = {}
+    # Technical Indicator Calculation (RSI)
+    gains, losses = 0, 0
+    for i in range(1, len(closes)):
+      diff = closes[i] - closes[i - 1]
+      if diff > 0:
+        gains += diff
+      else:
+        losses -= diff
 
-    while True:
-        try:
-            url = f"{BASE_URL}/getUpdates?offset={offset}&timeout=30"
-            response = requests.get(url, timeout=35)
-            data = response.json()
+    avg_gain = gains / 14
+    avg_loss = losses / 14 if losses != 0 else 1
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
 
-            if "result" in data:
-                for update in data["result"]:
-                    offset = update["update_id"] + 1
+    # Technical Indicator Calculation (EMA)
+    ema_short = sum(closes[-5:]) / 5
+    ema_long = sum(closes[-15:]) / 15
 
-                    if "message" in update and "text" in update["message"]:
-                        chat_id = update["message"]["chat"]["id"]
-                        text = update["message"]["text"]
+    # Signal Generation logic based on technical analysis
+    if rsi < 45 or (ema_short > ema_long and rsi < 70):
+      prediction = "🟢 UP (CALL) - Buy Signal"
+      confidence = "High" if rsi < 35 or rsi > 65 else "Moderate"
+      reason = (
+          f"EMA trend is bullish and RSI is at {rsi:.2f}, indicating strong"
+          " upward momentum."
+      )
+    else:
+      prediction = "🔴 DOWN (PUT) - Sell Signal"
+      confidence = "High" if rsi > 70 or rsi < 30 else "Moderate"
+      reason = (
+          f"EMA trend is bearish and RSI is at {rsi:.2f}, indicating downward"
+          " pressure."
+      )
 
-                        if text == "/start":
-                            keyboard = {
-                                "inline_keyboard": [
-                                    [{"text": "🪙 BTC/USDT", "callback_data": "BTCUSDT"},
-                                     {"text": "🪙 ETH/USDT", "callback_data": "ETHUSDT"}],
-                                    [{"text": "🪙 BNB/USDT", "callback_data": "BNBUSDT"},
-                                     {"text": "🪙 SOL/USDT", "callback_data": "SOLUSDT"}]
-                                ]
-                            }
-                            send_message(chat_id, "🤖 *Welcome to the 1-Minute Trading Signal Bot!*\n\nPlease select your preferred market:", reply_markup=keyboard)
+    return live_price, prediction, confidence, reason
 
-                    elif "callback_query" in update:
-                        query = update["callback_query"]
-                        chat_id = query["message"]["chat"]["id"]
-                        message_id = query["message"]["message_id"]
-                        data_cb = query["data"]
+  except Exception as e:
+    print(f"Error fetching data: {e}")
+    return None, None, None, str(e)
 
-                        if data_cb in ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]:
-                            user_selections[chat_id] = data_cb
-                            keyboard = {
-                                "inline_keyboard": [
-                                    [{"text": "⏱ 1 Minute (1m)", "callback_data": "tf_1m"},
-                                     {"text": "⏱ 5 Minutes (5m)", "callback_data": "tf_5m"}],
-                                    [{"text": "⏱ 15 Minutes (15m)", "callback_data": "tf_15m"}]
-                                ]
-                            }
-                            edit_message(chat_id, message_id, f"Selected Pair: `{data_cb}`\n\nNow select your trading timeframe:", reply_markup=keyboard)
 
-                        elif data_cb.startswith("tf_"):
-                            timeframe = data_cb.split("_")[1]
-                            symbol = user_selections.get(chat_id, "BTCUSDT")
+# 3. Start command and Interactive Inline Keyboard setup
+@bot.message_handler(commands=["start"])
+def send_welcome(message):
+  markup = types.InlineKeyboardMarkup(row_width=2)
+  markup.add(
+      types.InlineKeyboardButton(
+          "🪙 BTC/USDT (1m)", callback_data="BTCUSDT_1m"
+      ),
+      types.InlineKeyboardButton(
+          "🪙 BTC/USDT (5m)", callback_data="BTCUSDT_5m"
+      ),
+      types.InlineKeyboardButton(
+          "🪙 ETH/USDT (1m)", callback_data="ETHUSDT_1m"
+      ),
+      types.InlineKeyboardButton(
+          "🪙 SOL/USDT (1m)", callback_data="SOLUSDT_1m"
+      ),
+  )
 
-                            edit_message(chat_id, message_id, f"🔄 Analyzing 1-minute trend for `{symbol}` on `{timeframe}` timeframe...")
-                            
-                            analysis_result = get_real_market_analysis(symbol, timeframe)
-                            send_message(chat_id, analysis_result)
+  welcome_text = (
+      "🤖 *Professional Trading Signal Bot*\n\nPlease select a market and"
+      " timeframe to get real-time analysis:"
+  )
+  bot.send_message(
+      message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=markup
+  )
 
-        except Exception as e:
-            print(f"Polling Error: {e}")
-            time.sleep(3)
 
+# 4. Callback query handler for button clicks and real-time report delivery
+@bot.callback_query_handler(func=lambda call: True)
+def handle_query(call):
+  if "_" in call.data:
+    parts = call.data.split("_")
+    symbol = parts[0]
+    timeframe = parts[1]
+
+    bot.answer_callback_query(
+        call.id,
+        f"Analyzing live market for {symbol} ({timeframe})... Please wait.",
+    )
+
+    live_price, prediction, confidence, reason = analyze_market(
+        symbol, timeframe
+    )
+
+    if live_price is None:
+      bot.send_message(
+          call.message.chat.id,
+          "⚠️ Failed to fetch market data from API. Please try again later.",
+      )
+      return
+
+    analysis_text = (
+        f"📊 *REAL-TIME SIGNAL ANALYSIS* 📊\n\n"
+        f"🔹 *Market/Pair:* {symbol}\n"
+        f"⏱ *Timeframe:* {timeframe}\n"
+        f"💰 *Live Price:* {live_price}\n\n"
+        f"📈 *Prediction:* {prediction}\n"
+        f"🎯 *Confidence:* {confidence}\n"
+        f"💡 *Reason:* {reason}"
+    )
+
+    bot.send_message(
+        call.message.chat.id, analysis_text, parse_mode="Markdown"
+    )
+
+
+# 5. Main execution block combining Flask server and Telegram bot polling
 if __name__ == "__main__":
-    main()
+  server_thread = threading.Thread(target=run_web_server)
+  server_thread.daemon = True
+  server_thread.start()
+
+  print("Professional Trading Bot is running with polling...")
+  bot.infinity_polling(none_stop=True, interval=0, timeout=20)
