@@ -7,7 +7,7 @@ import telebot
 from telebot import types
 
 # Bot Token provided by user
-TOKEN = "8908381436:AAFYp7tXEZA7ygYYXYg45GhDj_djEwgy610"
+TOKEN = "8908381436:AAGeva6PKOPFPPUcx36tKUuUA4rQne5CmlM"
 bot = telebot.TeleBot(TOKEN)
 
 logging.basicConfig(level=logging.INFO)
