@@ -8,7 +8,8 @@ import telebot
 from telebot import types
 
 TOKEN = "8908381436:AAGeva6PKOPFPPUcx36tKUuUA4rQne5CmlM"
-DEV_LINK = "https://t.me/HANTER_XD_OFFICIAL"
+DEVELOPER_NAME = "HANTER_XD_OFFICIAL"
+DEVELOPER_LINK = "https://t.me/HANTER_XD_OFFICIAL"  # আপনার টেলিগ্রাম লিংক
 
 bot = telebot.TeleBot(TOKEN)
 logging.basicConfig(level=logging.INFO)
@@ -26,7 +27,6 @@ def run_web_server():
   app.run(host="0.0.0.0", port=port)
 
 
-# Advanced Analysis Engine incorporating Timeframe & News Feed
 def generate_timeframe_signal(symbol, timeframe):
   news_events = [
       {
@@ -57,11 +57,9 @@ def generate_timeframe_signal(symbol, timeframe):
   now = datetime.datetime.now()
   start_time = now.strftime("%I:%M %p")
 
-  # Dynamic expiry calculation based on user selection
   tf_mins = int(timeframe.replace("m", ""))
   end_time = (now + datetime.timedelta(minutes=tf_mins)).strftime("%I:%M %p")
 
-  # High accuracy decision logic
   if current_news["bias"] == "Bullish" or rsi < 42:
     prediction = "🟢 UP (CALL) - High Probability Buy"
     accuracy = (
@@ -94,8 +92,7 @@ def generate_timeframe_signal(symbol, timeframe):
 
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
-  user_name = message.from_user.first_name
-
+  # এখানে ইউজারের নাম ফেচ না করে সরাসরি আপনার নাম দিয়ে সুন্দরভাবে দেখানো হয়েছে যাতে ভেঙে না যায়
   markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
   btn1 = types.KeyboardButton("💱 Currencies (OTC)")
   btn2 = types.KeyboardButton("🪙 Crypto Markets")
@@ -104,9 +101,9 @@ def send_welcome(message):
   markup.add(btn1, btn2, btn3, btn4)
 
   welcome_text = (
-      f"🚀 **Welcome, {user_name} to Elite AI Signal Bot!** 🚀\n\n"
-      f"Designed exclusively for short-term traders. Choose your preferred market and timeframe (**1m, 5m, 15m**) to get institutional-grade signals backed by real-time news & technical scans.\n\n"
-      f"👨‍💻 **Lead Developer:** [@HANTER_XD_OFFICIAL]({DEV_LINK})\n\n"
+      f"🚀 **Welcome to Elite AI Signal Bot!** 🚀\n\n"
+      f"Designed exclusively for short-term traders. Choose your preferred market and timeframe (1m, 5m, 15m) to get institutional-grade signals backed by real-time news & technical scans.\n\n"
+      f"👨‍💻 **Lead Developer:** [{DEVELOPER_NAME}]({DEVELOPER_LINK})\n\n"
       f"👇 *Select a market category below to begin:*"
   )
   bot.send_message(
@@ -171,7 +168,6 @@ def handle_menu(message):
     )
 
 
-# Step 1: Asset selected -> Now prompt user to choose Timeframe
 @bot.callback_query_handler(func=lambda call: call.data.startswith("asset_"))
 def ask_timeframe(call):
   symbol = call.data.replace("asset_", "")
@@ -201,7 +197,6 @@ def ask_timeframe(call):
   )
 
 
-# Step 2: Timeframe selected -> Generate final precise signal report
 @bot.callback_query_handler(func=lambda call: call.data.startswith("tf_"))
 def send_final_signal(call):
   parts = call.data.split("_")
@@ -228,7 +223,7 @@ def send_final_signal(call):
       f"📉 **Current RSI Score:** `{rsi}`\n"
       f"📢 **News Sentiment:** __{news_title}__\n"
       f"💡 **Technical & News Logic:** {reason}\n"
-      f"👨‍💻 **Developer:** [@HANTER_XD_OFFICIAL]({DEV_LINK})\n"
+      f"👨‍💻 **Developer:** [{DEVELOPER_NAME}]({DEVELOPER_LINK})\n"
       f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
       f"⚠️ *Trading Risk Warning: Use proper money management and enter precisely at the given execution window.*"
   )
