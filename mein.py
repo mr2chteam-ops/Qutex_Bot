@@ -2,16 +2,15 @@ import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes
 import requests
-import pandas as pd
 import numpy as np
 
 # Logging Setup
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 # Put your Telegram Bot Token here
-BOT_TOKEN = "8908381436:AAFYp7tXEZA7ygYYXYg45GhDj_djEwgy610"
+BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
 
-# ----------------- Real Technical Analysis Engine -----------------
+# ----------------- Real Technical Analysis Engine (Without Pandas) -----------------
 def get_real_market_analysis(symbol, timeframe):
     try:
         # Fetch real-time candlestick data from Binance Public API (Last 100 candles)
@@ -25,34 +24,29 @@ def get_real_market_analysis(symbol, timeframe):
         if not isinstance(data, list) or len(data) < 50:
             return "⚠️ Insufficient market data available."
 
-        # Create DataFrame
-        df = pd.DataFrame(data, columns=[
-            'timestamp', 'open', 'high', 'low', 'close', 'volume', 
-            'close_time', 'quote_asset_volume', 'number_of_trades', 
-            'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
-        ])
-        
-        # Convert Data Types
-        df['close'] = df['close'].astype(float)
-        df['high'] = df['high'].astype(float)
-        df['low'] = df['low'].astype(float)
+        # Extract closing prices into a list/numpy array (Index 4 is the close price in Binance klines)
+        closes = np.array([float(candle[4]) for candle in data])
 
-        # 1. Calculate Exponential Moving Average (EMA 9 and EMA 21)
-        df['EMA_9'] = df['close'].ewm(span=9, adjust=False).mean()
-        df['EMA_21'] = df['close'].ewm(span=21, adjust=False).mean()
+        # 1. Calculate Exponential Moving Average (EMA 9 and EMA 21) using NumPy
+        def calculate_ema(prices, period):
+            weights = np.exp(np.linspace(-1., 0., period))
+            weights /= weights.sum()
+            a = np.convolve(prices, weights, mode='valid')
+            return a[-1]
+
+        ema_9 = calculate_ema(closes, 9)
+        ema_21 = calculate_ema(closes, 21)
 
         # 2. Calculate RSI (Relative Strength Index - 14 Period)
-        delta = df['close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-        rs = gain / loss
-        df['RSI'] = 100 - (100 / (1 + rs))
+        deltas = np.diff(closes)
+        seed = deltas[:14]
+        up = seed[seed >= 0].sum() / 14
+        down = -seed[seed < 0].sum() / 14
+        rs = up / down if down != 0 else 0
+        rsi = 100.0 - (100.0 / (1.0 + rs))
 
         # Get current real values
-        current_price = df['close'].iloc[-1]
-        ema_9 = df['EMA_9'].iloc[-1]
-        ema_21 = df['EMA_21'].iloc[-1]
-        rsi = df['RSI'].iloc[-1]
+        current_price = closes[-1]
 
         # Trading Decision Logic (Real Strategy)
         if ema_9 > ema_21 and rsi > 50 and rsi < 70:
