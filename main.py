@@ -99,17 +99,18 @@ def send_welcome(message):
   btn4 = types.KeyboardButton("⚡ Live News Flash")
   markup.add(btn1, btn2, btn3, btn4)
 
-  # MarkdownV2 ব্যবহার করে লিংক হাইড করা হয়েছে যাতে প্রিভিউ বক্স না আসে
+  # স্ট্যান্ডার্ড Markdown এবং HTML হাইপারলিংক ব্যবহার করা হয়েছে যাতে কোনো এরর না আসে
   welcome_text = (
-      f"🚀 *Welcome to Elite AI Signal Bot!* 🚀\n\n"
+      f"🚀 <b>Welcome to Elite AI Signal Bot!</b> 🚀\n\n"
       f"Designed exclusively for short-term traders. Choose your preferred market and timeframe (1m, 5m, 15m) to get institutional-grade signals backed by real-time news & technical scans.\n\n"
-      f"👨‍💻 *Lead Developer:* [{DEVELOPER_NAME}]({DEVELOPER_LINK})\n\n"
-      f"👇 _Select a market category below to begin:_"
+      f"👨‍💻 <b>Lead Developer:</b> <a"
+      f" href='{DEVELOPER_LINK}'>{DEVELOPER_NAME}</a>\n\n"
+      f"👇 <i>Select a market category below to begin:</i>"
   )
   bot.send_message(
       message.chat.id,
       welcome_text,
-      parse_mode="MarkdownV2",
+      parse_mode="HTML",
       reply_markup=markup,
       disable_web_page_preview=True,
   )
@@ -216,27 +217,28 @@ def send_final_signal(call):
       generate_timeframe_signal(symbol, timeframe)
   )
 
-  # MarkdownV2 ব্যবহার করে সিগন্যাল রিপোর্টেও প্রিভিউ বন্ধ রাখা হয়েছে
   report = (
-      f"🎯📊 *PROFESSIONAL 100% SHORT SIGNAL* 📊🎯\n"
+      f"🎯📊 <b>PROFESSIONAL 100% SHORT SIGNAL</b> 📊🎯\n"
       f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-      f"🔹 *Target Pair:* `{symbol}`\n"
-      f"⏱ *Trade Timeframe:* `{timeframe}`\n"
-      f"⏰ *Execution Window:* `{start_time} to {end_time}`\n"
-      f"📈 *Signal Prediction:* {prediction}\n"
-      f"🎯 *Success Accuracy:* `{accuracy}`\n"
-      f"📉 *Current RSI Score:* `{rsi}`\n"
-      f"📢 *News Sentiment:* __{news_title}__\n"
-      f"💡 *Technical & News Logic:* {reason}\n"
-      f"👨‍💻 *Developer:* [{DEVELOPER_NAME}]({DEVELOPER_LINK})\n"
+      f"🔹 <b>Target Pair:</b> <code>{symbol}</code>\n"
+      f"⏱ <b>Trade Timeframe:</b> <code>{timeframe}</code>\n"
+      f"⏰ <b>Execution Window:</b> <code>{start_time} to {end_time}</code>\n"
+      f"📈 <b>Signal Prediction:</b> {prediction}\n"
+      f"🎯 <b>Success Accuracy:</b> <code>{accuracy}</code>\n"
+      f"📉 <b>Current RSI Score:</b> <code>{rsi}</code>\n"
+      f"📢 <b>News Sentiment:</b> <i>{news_title}</i>\n"
+      f"💡 <b>Technical & News Logic:</b> {reason}\n"
+      f"👨‍💻 <b>Developer:</b> <a"
+      f" href='{DEVELOPER_LINK}'>{DEVELOPER_NAME}</a>\n"
       f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-      f"⚠️ _Trading Risk Warning: Use proper money management and enter precisely at the given execution window._"
+      f"⚠️ <i>Trading Risk Warning: Use proper money management and enter"
+      f" precisely at the given execution window.</i>"
   )
   bot.edit_message_text(
       chat_id=call.message.chat.id,
       message_id=call.message.message_id,
       text=report,
-      parse_mode="MarkdownV2",
+      parse_mode="HTML",
       disable_web_page_preview=True,
   )
 
