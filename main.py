@@ -1,19 +1,15 @@
-import logging
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes
+import os
+import time
 import requests
 import numpy as np
 
-# Logging Setup
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-
-# Put your Telegram Bot Token here
+# Updated Telegram Bot Token
 BOT_TOKEN = "8908381436:AAFYp7tXEZA7ygYYXYg45GhDj_djEwgy610"
+BASE_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-# ----------------- Real Technical Analysis Engine (Without Pandas) -----------------
+# ----------------- Real Technical Analysis Engine -----------------
 def get_real_market_analysis(symbol, timeframe):
     try:
-        # Fetch real-time candlestick data from Binance Public API (Last 100 candles)
         url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={timeframe}&limit=100"
         response = requests.get(url, timeout=10)
         
@@ -24,10 +20,8 @@ def get_real_market_analysis(symbol, timeframe):
         if not isinstance(data, list) or len(data) < 50:
             return "⚠️ Insufficient market data available."
 
-        # Extract closing prices into a list/numpy array (Index 4 is the close price in Binance klines)
         closes = np.array([float(candle[4]) for candle in data])
 
-        # 1. Calculate Exponential Moving Average (EMA 9 and EMA 21) using NumPy
         def calculate_ema(prices, period):
             weights = np.exp(np.linspace(-1., 0., period))
             weights /= weights.sum()
@@ -37,7 +31,6 @@ def get_real_market_analysis(symbol, timeframe):
         ema_9 = calculate_ema(closes, 9)
         ema_21 = calculate_ema(closes, 21)
 
-        # 2. Calculate RSI (Relative Strength Index - 14 Period)
         deltas = np.diff(closes)
         seed = deltas[:14]
         up = seed[seed >= 0].sum() / 14
@@ -45,10 +38,8 @@ def get_real_market_analysis(symbol, timeframe):
         rs = up / down if down != 0 else 0
         rsi = 100.0 - (100.0 / (1.0 + rs))
 
-        # Get current real values
         current_price = closes[-1]
 
-        # Trading Decision Logic (Real Strategy)
         if ema_9 > ema_21 and rsi > 50 and rsi < 70:
             prediction = "🟢 **UP (CALL) - Strong Bullish Trend**"
             confidence = "High"
@@ -70,81 +61,104 @@ def get_real_market_analysis(symbol, timeframe):
             confidence = "Medium"
             reason = f"Market is currently showing no clear direction (RSI: {rsi:.2f})."
 
-        # Format final result message
         result_text = (
-            f"📊 **LIVE MARKET ANALYSIS** 📊\n\n"
-            f"🔹 **Market/Pair:** `{symbol}`\n"
-            f"⏱ **Timeframe:** `{timeframe}`\n"
-            f"💰 **Live Price:** `{current_price}`\n\n"
-            f"📈 **Prediction:** {prediction}\n"
-            f"🎯 **Confidence:** {confidence}\n"
-            f"💡 **Analysis Reason:** {reason}\n\n"
-            f"⚡ *Note: Analysis is based on real-time mathematical indicator data.*"
+            f"📊 *LIVE MARKET ANALYSIS* 📊\n\n"
+            f"🔹 *Market/Pair:* `{symbol}`\n"
+            f"⏱ *Timeframe:* `{timeframe}`\n"
+            f"💰 *Live Price:* `{current_price}`\n\n"
+            f"📈 *Prediction:* {prediction}\n"
+            f"🎯 *Confidence:* {confidence}\n"
+            f"💡 *Analysis Reason:* {reason}"
         )
         return result_text
 
     except Exception as e:
         return f"Technical error occurred: {str(e)}"
 
-# ----------------- Telegram Handlers -----------------
+# ----------------- Telegram Message Helper Functions -----------------
+def send_message(chat_id, text, reply_markup=None):
+    url = f"{BASE_URL}/sendMessage"
+    payload = {
+        "chat_id": chat_id, 
+        "text": text, 
+        "parse_mode": "Markdown"
+    }
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    requests.post(url, json=payload)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("🪙 BTC/USDT", callback_data="BTCUSDT"),
-         InlineKeyboardButton("🪙 ETH/USDT", callback_data="ETHUSDT")],
-        [InlineKeyboardButton("🪙 BNB/USDT", callback_data="BNBUSDT"),
-         InlineKeyboardButton("🪙 SOL/USDT", callback_data="SOLUSDT")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "🤖 **Welcome to the Real-Time Trading Analysis Bot!**\n\nPlease select your preferred market from the list below:", 
-        reply_markup=reply_markup, 
-        parse_mode="Markdown"
-    )
+def edit_message(chat_id, message_id, text, reply_markup=None):
+    url = f"{BASE_URL}/editMessageText"
+    payload = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "text": text,
+        "parse_mode": "Markdown"
+    }
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    requests.post(url, json=payload)
 
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-
-    # If user selects a coin
-    if data in ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]:
-        context.user_data['symbol'] = data
-        
-        # Give option to select timeframe
-        keyboard = [
-            [InlineKeyboardButton("⏱ 1 Minute (1m)", callback_data="tf_1m"),
-             InlineKeyboardButton("⏱ 5 Minutes (5m)", callback_data="tf_5m")],
-            [InlineKeyboardButton("⏱ 15 Minutes (15m)", callback_data="tf_15m")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(
-            text=f"Selected Pair: `{data}`\n\nNow select your trading timeframe:", 
-            reply_markup=reply_markup, 
-            parse_mode="Markdown"
-        )
-
-    # If user selects a timeframe
-    elif data.startswith("tf_"):
-        timeframe = data.split("_")[1]
-        symbol = context.user_data.get('symbol', 'BTCUSDT')
-
-        await query.edit_message_text(text=f"🔄 Calculating live momentum and RSI for `{symbol}` on `{timeframe}` timeframe...", parse_mode="Markdown")
-
-        # Process real data and get analysis
-        analysis_result = get_real_market_analysis(symbol, timeframe)
-
-        # Send final signal to user
-        await query.message.reply_text(analysis_result, parse_mode="Markdown")
-
+# ----------------- Long Polling Loop -----------------
 def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    print("Bot is running via Telegram HTTP API...")
+    offset = 0
+    user_selections = {}
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
+    while True:
+        try:
+            url = f"{BASE_URL}/getUpdates?offset={offset}&timeout=30"
+            response = requests.get(url, timeout=35)
+            data = response.json()
 
-    print("Real-time trading bot started successfully...")
-    app.run_polling()
+            if "result" in data:
+                for update in data["result"]:
+                    offset = update["update_id"] + 1
+
+                    if "message" in update and "text" in update["message"]:
+                        chat_id = update["message"]["chat"]["id"]
+                        text = update["message"]["text"]
+
+                        if text == "/start":
+                            keyboard = {
+                                "inline_keyboard": [
+                                    [{"text": "🪙 BTC/USDT", "callback_data": "BTCUSDT"},
+                                     {"text": "🪙 ETH/USDT", "callback_data": "ETHUSDT"}],
+                                    [{"text": "🪙 BNB/USDT", "callback_data": "BNBUSDT"},
+                                     {"text": "🪙 SOL/USDT", "callback_data": "SOLUSDT"}]
+                                ]
+                            }
+                            send_message(chat_id, "🤖 *Welcome to the Real-Time Trading Analysis Bot!*\n\nPlease select your preferred market:", reply_markup=keyboard)
+
+                    elif "callback_query" in update:
+                        query = update["callback_query"]
+                        chat_id = query["message"]["chat"]["id"]
+                        message_id = query["message"]["message_id"]
+                        data_cb = query["data"]
+
+                        if data_cb in ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]:
+                            user_selections[chat_id] = data_cb
+                            keyboard = {
+                                "inline_keyboard": [
+                                    [{"text": "⏱ 1 Minute (1m)", "callback_data": "tf_1m"},
+                                     {"text": "⏱ 5 Minutes (5m)", "callback_data": "tf_5m"}],
+                                    [{"text": "⏱ 15 Minutes (15m)", "callback_data": "tf_15m"}]
+                                ]
+                            }
+                            edit_message(chat_id, message_id, f"Selected Pair: `{data_cb}`\n\nNow select your trading timeframe:", reply_markup=keyboard)
+
+                        elif data_cb.startswith("tf_"):
+                            timeframe = data_cb.split("_")[1]
+                            symbol = user_selections.get(chat_id, "BTCUSDT")
+
+                            edit_message(chat_id, message_id, f"🔄 Calculating live momentum and RSI for `{symbol}` on `{timeframe}` timeframe...")
+                            
+                            analysis_result = get_real_market_analysis(symbol, timeframe)
+                            send_message(chat_id, analysis_result)
+
+        except Exception as e:
+            print(f"Polling Error: {e}")
+            time.sleep(3)
 
 if __name__ == "__main__":
     main()
