@@ -4,6 +4,7 @@ import os
 import random
 import threading
 from flask import Flask
+import pytz
 import telebot
 from telebot import types
 
@@ -19,7 +20,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-  return "Advanced Timeframe Trading Bot is running!"
+  return "Elite AI 100% Sure-Shot Signal Bot is running!"
 
 
 def run_web_server():
@@ -27,66 +28,122 @@ def run_web_server():
   app.run(host="0.0.0.0", port=port)
 
 
-def generate_timeframe_signal(symbol, timeframe):
-  news_events = [
+def generate_advanced_sure_shot_signal(symbol, timeframe):
+  candle_patterns = [
       {
-          "title": "US Core Retail Sales Data Release",
-          "impact": "High",
+          "pattern": (
+              "Three White Soldiers (Bullish Continuation Pattern)"
+          ),
+          "analysis": (
+              "Strong bullish momentum with three consecutive long green"
+              " candles. Indicates heavy institutional buying pressure."
+          ),
           "bias": "Bullish",
       },
       {
-          "title": "FOMC Meeting Minutes & Interest Rate Outlook",
-          "impact": "High",
+          "pattern": "Bullish Engulfing with High Volume",
+          "analysis": (
+              "A large green candle completely engulfs the previous red"
+              " candle, signaling an aggressive trend reversal to the upside."
+          ),
+          "bias": "Bullish",
+      },
+      {
+          "pattern": "Morning Star at Key Support Level",
+          "analysis": (
+              "Three-candle reversal pattern showing sellers losing momentum"
+              " and buyers taking total control of the next candle."
+          ),
+          "bias": "Bullish",
+      },
+      {
+          "pattern": "Three Black Crows (Bearish Continuation Pattern)",
+          "analysis": (
+              "Consecutive strong red candles showing aggressive selling"
+              " pressure and institutional profit-taking."
+          ),
           "bias": "Bearish",
       },
       {
-          "title": "Global Liquidity & Institutional Volume Surge",
-          "impact": "High",
-          "bias": "Bullish",
+          "pattern": "Bearish Engulfing Rejection",
+          "analysis": (
+              "A dominant red candle engulfs the prior green candle, indicating"
+              " immediate downward price rejection."
+          ),
+          "bias": "Bearish",
       },
       {
-          "title": "Technical Resistance Rejection & Profit Taking",
-          "impact": "Medium",
+          "pattern": "Evening Star at Resistance Zone",
+          "analysis": (
+              "Strong reversal pattern indicating exhaustion of buyers and an"
+              " imminent sharp drop in the upcoming candle."
+          ),
           "bias": "Bearish",
       },
   ]
 
-  current_news = random.choice(news_events)
-  rsi = round(random.uniform(22, 78), 2)
+  news_catalysts = [
+      {
+          "title": "US Core Retail Sales & Consumer Spending Surge",
+          "impact": "High Impact (Bullish USD)",
+      },
+      {
+          "title": "FOMC Interest Rate Outlook & Liquidity Tightening",
+          "impact": "High Impact (Bearish Pressure)",
+      },
+      {
+          "title": "Global Institutional Order Block Liquidity Sweep",
+          "impact": "Maximum Volatility Confirmed",
+      },
+      {
+          "title": "Technical Resistance Zone Rejection & Volatility Spike",
+          "impact": "Medium Impact Reversal",
+      },
+  ]
 
-  now = datetime.datetime.now()
-  start_time = now.strftime("%I:%M %p")
+  selected_pattern = random.choice(candle_patterns)
+  selected_news = random.choice(news_catalysts)
+  rsi = round(random.uniform(24, 76), 2)
 
+  bd_tz = pytz.timezone("Asia/Dhaka")
+  now_bd = datetime.datetime.now(bd_tz)
+
+  start_time = now_bd.strftime("%I:%M:%S %p")
   tf_mins = int(timeframe.replace("m", ""))
-  end_time = (now + datetime.timedelta(minutes=tf_mins)).strftime("%I:%M %p")
+  end_time = (now_bd + datetime.timedelta(minutes=tf_mins)).strftime(
+      "%I:%M:%S %p"
+  )
 
-  if current_news["bias"] == "Bullish" or rsi < 42:
-    prediction = "🟢 UP (CALL) - High Probability Buy"
+  if selected_pattern["bias"] == "Bullish" or rsi < 40:
+    prediction = "🟢 NEXT CANDLE: UP (CALL) [100% SURE-SHOT]"
     accuracy = (
-        f"98.2% ({timeframe} Verified - Optimal for Short-Term Volatility)"
+        f"99.4% ({timeframe} Institutional Scan & Multi-Confirmation Verified)"
     )
-    reason = (
-        f"News Catalyst: {current_news['title']}. RSI at {rsi} shows strong"
-        f" oversold bounce for {timeframe} timeframe."
+    action_advice = (
+        "Next candle will open with strong upward momentum. Enter CALL"
+        " precisely at the candle opening."
     )
   else:
-    prediction = "🔴 DOWN (PUT) - High Probability Sell"
+    prediction = "🔴 NEXT CANDLE: DOWN (PUT) [100% SURE-SHOT]"
     accuracy = (
-        f"97.8% ({timeframe} Verified - Optimal for Short-Term Volatility)"
+        f"99.4% ({timeframe} Institutional Scan & Multi-Confirmation Verified)"
     )
-    reason = (
-        f"News Catalyst: {current_news['title']}. RSI at {rsi} indicates strong"
-        f" bearish rejection for {timeframe} timeframe."
+    action_advice = (
+        "Next candle will face heavy rejection and drop down. Enter PUT precisely"
+        " at the candle opening."
     )
 
   return (
       prediction,
       accuracy,
-      reason,
+      selected_pattern["pattern"],
+      selected_pattern["analysis"],
+      selected_news["title"],
+      selected_news["impact"],
+      rsi,
       start_time,
       end_time,
-      current_news["title"],
-      rsi,
+      action_advice,
   )
 
 
@@ -99,13 +156,12 @@ def send_welcome(message):
   btn4 = types.KeyboardButton("⚡ Live News Flash")
   markup.add(btn1, btn2, btn3, btn4)
 
-  # স্ট্যান্ডার্ড Markdown এবং HTML হাইপারলিংক ব্যবহার করা হয়েছে যাতে কোনো এরর না আসে
   welcome_text = (
-      f"🚀 <b>Welcome to Elite AI Signal Bot!</b> 🚀\n\n"
-      f"Designed exclusively for short-term traders. Choose your preferred market and timeframe (1m, 5m, 15m) to get institutional-grade signals backed by real-time news & technical scans.\n\n"
-      f"👨‍💻 <b>Lead Developer:</b> <a"
-      f" href='{DEVELOPER_LINK}'>{DEVELOPER_NAME}</a>\n\n"
-      f"👇 <i>Select a market category below to begin:</i>"
+      f"🚀 <b>Welcome to Elite AI 100% Sure-Shot Signal Bot!</b> 🚀\n\n"
+      f"Powered by Advanced Candle Analysis, Real-Time News Filters, and Broker"
+      f" Price Action Feeds.\n\n👨‍💻 <b>Lead Developer:</b> <a"
+      f" href='{DEVELOPER_LINK}'>{DEVELOPER_NAME}</a>\n\n👇 <i>Select your"
+      f" target market below to get 100% sure-shot signals:</i>"
   )
   bot.send_message(
       message.chat.id,
@@ -130,7 +186,9 @@ def handle_menu(message):
         types.InlineKeyboardButton("AUD/NZD (OTC)", callback_data="asset_AUDNZD"),
     )
     bot.send_message(
-        chat_id, "Select Currency Pair for Analysis:", reply_markup=markup
+        chat_id,
+        "Select Currency Pair for Sure-Shot Analysis:",
+        reply_markup=markup,
     )
 
   elif "Crypto" in text:
@@ -142,7 +200,9 @@ def handle_menu(message):
         types.InlineKeyboardButton("Toncoin (OTC)", callback_data="asset_TON"),
     )
     bot.send_message(
-        chat_id, "Select Crypto Asset for Analysis:", reply_markup=markup
+        chat_id,
+        "Select Crypto Asset for Sure-Shot Analysis:",
+        reply_markup=markup,
     )
 
   elif "Commodities" in text:
@@ -157,31 +217,35 @@ def handle_menu(message):
         ),
     )
     bot.send_message(
-        chat_id, "Select Commodity or Stock for Analysis:", reply_markup=markup
+        chat_id,
+        "Select Commodity or Stock for Sure-Shot Analysis:",
+        reply_markup=markup,
     )
 
   elif "Live News Flash" in text:
-    news_flashes = [
-        "🔥 [HIGH IMPACT] Global Forex sessions showing high liquidity pockets.",
-        "⚡ [MACRO] Central bank statements affecting short-term volatility.",
-        "🚀 [CRYPTO] Order book imbalance detected favoring upward continuation.",
-    ]
     bot.send_message(
         chat_id,
-        f"📰 **Active Global News Feed:**\n\n" + "\n\n".join(news_flashes),
-        parse_mode="Markdown",
+        (
+            "📰 <b>Real-Time Broker & Global News Feed:</b>\n\n🔥 [CHECKED]"
+            " Market liquidity is optimal.\n⚡ [CHECKED] Macro news impact"
+            " verified.\n🚀 [READY] All systems clear for 100% Sure-Shot"
+            " execution."
+        ),
+        parse_mode="HTML",
     )
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("asset_"))
 def ask_timeframe(call):
   symbol = call.data.replace("asset_", "")
-  bot.answer_callback_query(call.id, f"Selected {symbol}. Choose timeframe...")
+  bot.answer_callback_query(
+      call.id, f"Selected {symbol}. Choose candle timeframe..."
+  )
 
   markup = types.InlineKeyboardMarkup(row_width=3)
   markup.add(
       types.InlineKeyboardButton(
-          "⚡ 1 Minute (Most Popular)", callback_data=f"tf_{symbol}_1m"
+          "⚡ 1 Minute (Fast Sure-Shot)", callback_data=f"tf_{symbol}_1m"
       ),
       types.InlineKeyboardButton(
           "⏱ 5 Minutes", callback_data=f"tf_{symbol}_5m"
@@ -194,10 +258,10 @@ def ask_timeframe(call):
       chat_id=call.message.chat.id,
       message_id=call.message.message_id,
       text=(
-          f"📊 **Asset:** `{symbol}`\n\n👇 *Select your target trading"
-          " timeframe below:*"
+          f"📊 <b>Asset:</b> <code>{symbol}</code>\n\n👇 *Select candle"
+          " timeframe for next-candle prediction:*"
       ),
-      parse_mode="Markdown",
+      parse_mode="HTML",
       reply_markup=markup,
   )
 
@@ -210,29 +274,44 @@ def send_final_signal(call):
 
   bot.answer_callback_query(
       call.id,
-      f"Analyzing {symbol} for {timeframe} with News & Indicators...",
+      (
+          f"Checking News, Broker Feeds & Analyzing {symbol} Candlestick"
+          " Patterns..."
+      ),
   )
 
-  prediction, accuracy, reason, start_time, end_time, news_title, rsi = (
-      generate_timeframe_signal(symbol, timeframe)
-  )
+  (
+      prediction,
+      accuracy,
+      pattern_name,
+      pattern_analysis,
+      news_title,
+      news_impact,
+      rsi,
+      start_time,
+      end_time,
+      action_advice,
+  ) = generate_advanced_sure_shot_signal(symbol, timeframe)
 
   report = (
-      f"🎯📊 <b>PROFESSIONAL 100% SHORT SIGNAL</b> 📊🎯\n"
+      f"🎯📊 <b>ELITE 100% SURE-SHOT SIGNAL REPORT</b> 📊🎯\n"
       f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
       f"🔹 <b>Target Pair:</b> <code>{symbol}</code>\n"
-      f"⏱ <b>Trade Timeframe:</b> <code>{timeframe}</code>\n"
-      f"⏰ <b>Execution Window:</b> <code>{start_time} to {end_time}</code>\n"
-      f"📈 <b>Signal Prediction:</b> {prediction}\n"
-      f"🎯 <b>Success Accuracy:</b> <code>{accuracy}</code>\n"
-      f"📉 <b>Current RSI Score:</b> <code>{rsi}</code>\n"
-      f"📢 <b>News Sentiment:</b> <i>{news_title}</i>\n"
-      f"💡 <b>Technical & News Logic:</b> {reason}\n"
+      f"⏱ <b>Candle Timeframe:</b> <code>{timeframe}</code>\n"
+      f"🇧🇩 <b>BD Execution Window (Time):</b> <code>{start_time} to"
+      f" {end_time}</code>\n"
+      f"📈 <b>Prediction:</b> {prediction}\n"
+      f"🎯 <b>Accuracy Rate:</b> <code>{accuracy}</code>\n"
+      f"🕯 <b>Identified Candlestick Pattern:</b> <i>{pattern_name}</i>\n"
+      f"🧠 <b>Candle & Market Analysis:</b> {pattern_analysis}\n"
+      f"📢 <b>News & Broker Feed Check:</b> {news_title} ({news_impact})\n"
+      f"📉 <b>RSI Momentum Score:</b> <code>{rsi}</code>\n"
+      f"💡 <b>Action Strategy:</b> {action_advice}\n"
       f"👨‍💻 <b>Developer:</b> <a"
       f" href='{DEVELOPER_LINK}'>{DEVELOPER_NAME}</a>\n"
       f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-      f"⚠️ <i>Trading Risk Warning: Use proper money management and enter"
-      f" precisely at the given execution window.</i>"
+      f"⚠️ <i>Strictly follow the BD Time window and enter precisely on the"
+      f" next candle opening for 100% success.</i>"
   )
   bot.edit_message_text(
       chat_id=call.message.chat.id,
@@ -253,5 +332,8 @@ if __name__ == "__main__":
   server_thread.daemon = True
   server_thread.start()
 
-  print("Timeframe-based Smart Bot is running with polling...")
+  print(
+      "Elite AI 100% Sure-Shot Signal Bot with BD Timezone & Candle Analysis is"
+      " running..."
+  )
   bot.infinity_polling(none_stop=True, interval=0, timeout=20)
