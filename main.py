@@ -8,8 +8,8 @@ import telebot
 from telebot import types
 
 TOKEN = "8908381436:AAGeva6PKOPFPPUcx36tKUuUA4rQne5CmlM"
-DEVELOPER_NAME = "HANTER_XD_OFFICIAL"
-DEVELOPER_LINK = "https://t.me/HANTER_XD_OFFICIAL"  # আপনার টেলিগ্রাম লিংক
+DEVELOPER_NAME = "@HANTER_XD_OFFICIAL"
+DEVELOPER_LINK = "https://t.me/HANTER_XD_OFFICIAL"
 
 bot = telebot.TeleBot(TOKEN)
 logging.basicConfig(level=logging.INFO)
@@ -92,7 +92,6 @@ def generate_timeframe_signal(symbol, timeframe):
 
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
-  # এখানে ইউজারের নাম ফেচ না করে সরাসরি আপনার নাম দিয়ে সুন্দরভাবে দেখানো হয়েছে যাতে ভেঙে না যায়
   markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
   btn1 = types.KeyboardButton("💱 Currencies (OTC)")
   btn2 = types.KeyboardButton("🪙 Crypto Markets")
@@ -100,14 +99,19 @@ def send_welcome(message):
   btn4 = types.KeyboardButton("⚡ Live News Flash")
   markup.add(btn1, btn2, btn3, btn4)
 
+  # MarkdownV2 ব্যবহার করে লিংক হাইড করা হয়েছে যাতে প্রিভিউ বক্স না আসে
   welcome_text = (
-      f"🚀 **Welcome to Elite AI Signal Bot!** 🚀\n\n"
+      f"🚀 *Welcome to Elite AI Signal Bot!* 🚀\n\n"
       f"Designed exclusively for short-term traders. Choose your preferred market and timeframe (1m, 5m, 15m) to get institutional-grade signals backed by real-time news & technical scans.\n\n"
-      f"👨‍💻 **Lead Developer:** [{DEVELOPER_NAME}]({DEVELOPER_LINK})\n\n"
-      f"👇 *Select a market category below to begin:*"
+      f"👨‍💻 *Lead Developer:* [{DEVELOPER_NAME}]({DEVELOPER_LINK})\n\n"
+      f"👇 _Select a market category below to begin:_"
   )
   bot.send_message(
-      message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=markup
+      message.chat.id,
+      welcome_text,
+      parse_mode="MarkdownV2",
+      reply_markup=markup,
+      disable_web_page_preview=True,
   )
 
 
@@ -212,26 +216,28 @@ def send_final_signal(call):
       generate_timeframe_signal(symbol, timeframe)
   )
 
+  # MarkdownV2 ব্যবহার করে সিগন্যাল রিপোর্টেও প্রিভিউ বন্ধ রাখা হয়েছে
   report = (
-      f"🎯📊 **PROFESSIONAL 100% SHORT SIGNAL** 📊🎯\n"
+      f"🎯📊 *PROFESSIONAL 100% SHORT SIGNAL* 📊🎯\n"
       f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-      f"🔹 **Target Pair:** `{symbol}`\n"
-      f"⏱ **Trade Timeframe:** `{timeframe}`\n"
-      f"⏰ **Execution Window:** `{start_time} to {end_time}`\n"
-      f"📈 **Signal Prediction:** {prediction}\n"
-      f"🎯 **Success Accuracy:** `{accuracy}`\n"
-      f"📉 **Current RSI Score:** `{rsi}`\n"
-      f"📢 **News Sentiment:** __{news_title}__\n"
-      f"💡 **Technical & News Logic:** {reason}\n"
-      f"👨‍💻 **Developer:** [{DEVELOPER_NAME}]({DEVELOPER_LINK})\n"
+      f"🔹 *Target Pair:* `{symbol}`\n"
+      f"⏱ *Trade Timeframe:* `{timeframe}`\n"
+      f"⏰ *Execution Window:* `{start_time} to {end_time}`\n"
+      f"📈 *Signal Prediction:* {prediction}\n"
+      f"🎯 *Success Accuracy:* `{accuracy}`\n"
+      f"📉 *Current RSI Score:* `{rsi}`\n"
+      f"📢 *News Sentiment:* __{news_title}__\n"
+      f"💡 *Technical & News Logic:* {reason}\n"
+      f"👨‍💻 *Developer:* [{DEVELOPER_NAME}]({DEVELOPER_LINK})\n"
       f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-      f"⚠️ *Trading Risk Warning: Use proper money management and enter precisely at the given execution window.*"
+      f"⚠️ _Trading Risk Warning: Use proper money management and enter precisely at the given execution window._"
   )
   bot.edit_message_text(
       chat_id=call.message.chat.id,
       message_id=call.message.message_id,
       text=report,
-      parse_mode="Markdown",
+      parse_mode="MarkdownV2",
+      disable_web_page_preview=True,
   )
 
 
