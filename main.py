@@ -7,20 +7,39 @@ import numpy as np
 BOT_TOKEN = "8908381436:AAFYp7tXEZA7ygYYXYg45GhDj_djEwgy610"
 BASE_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-# ----------------- Real Technical Analysis Engine -----------------
+# ----------------- Real Technical Analysis Engine (Yahoo Finance) -----------------
 def get_real_market_analysis(symbol, timeframe):
     try:
-        url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={timeframe}&limit=100"
-        response = requests.get(url, timeout=10)
+        # Convert Binance symbol format (e.g., BTCUSDT) to Yahoo Finance format (e.g., BTC-USD)
+        yf_symbol = symbol.replace("USDT", "-USD")
+        
+        # Map timeframe to Yahoo Finance intervals
+        tf_map = {"1m": "1m", "5m": "5m", "15m": "15m"}
+        interval = tf_map.get(timeframe, "1m")
+        
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_symbol}?interval={interval}&range=1d"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers, timeout=10)
         
         if response.status_code != 200:
             return "⚠️ Failed to fetch data from market server. Please try again later."
 
         data = response.json()
-        if not isinstance(data, list) or len(data) < 50:
+        result = data.get('chart', {}).get('result')
+        
+        if not result:
+            return "⚠️ Insufficient market data available."
+            
+        quotes = result[0].get('indicators', {}).get('quote', [{}])[0]
+        closes = quotes.get('close', [])
+        
+        # Clean None values if any
+        closes = [c for c in closes if c is not None]
+        
+        if len(closes) < 30:
             return "⚠️ Insufficient market data available."
 
-        closes = np.array([float(candle[4]) for candle in data])
+        closes = np.array(closes)
 
         def calculate_ema(prices, period):
             weights = np.exp(np.linspace(-1., 0., period))
@@ -65,7 +84,7 @@ def get_real_market_analysis(symbol, timeframe):
             f"📊 *LIVE MARKET ANALYSIS* 📊\n\n"
             f"🔹 *Market/Pair:* `{symbol}`\n"
             f"⏱ *Timeframe:* `{timeframe}`\n"
-            f"💰 *Live Price:* `{current_price}`\n\n"
+            f"💰 *Live Price:* `{current_price:.2f}`\n\n"
             f"📈 *Prediction:* {prediction}\n"
             f"🎯 *Confidence:* {confidence}\n"
             f"💡 *Analysis Reason:* {reason}"
