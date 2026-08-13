@@ -9,7 +9,7 @@ import numpy as np
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 # Put your Telegram Bot Token here
-BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+BOT_TOKEN = "8908381436:AAFYp7tXEZA7ygYYXYg45GhDj_djEwgy610"
 
 # ----------------- Real Technical Analysis Engine -----------------
 def get_real_market_analysis(symbol, timeframe):
