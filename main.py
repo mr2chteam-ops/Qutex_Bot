@@ -7,13 +7,11 @@ import numpy as np
 BOT_TOKEN = "8908381436:AAFYp7tXEZA7ygYYXYg45GhDj_djEwgy610"
 BASE_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-# ----------------- Real Technical Analysis Engine (Yahoo Finance) -----------------
+# ----------------- Real Technical Analysis Engine (Forced Direction) -----------------
 def get_real_market_analysis(symbol, timeframe):
     try:
-        # Convert Binance symbol format (e.g., BTCUSDT) to Yahoo Finance format (e.g., BTC-USD)
         yf_symbol = symbol.replace("USDT", "-USD")
         
-        # Map timeframe to Yahoo Finance intervals
         tf_map = {"1m": "1m", "5m": "5m", "15m": "15m"}
         interval = tf_map.get(timeframe, "1m")
         
@@ -33,7 +31,6 @@ def get_real_market_analysis(symbol, timeframe):
         quotes = result[0].get('indicators', {}).get('quote', [{}])[0]
         closes = quotes.get('close', [])
         
-        # Clean None values if any
         closes = [c for c in closes if c is not None]
         
         if len(closes) < 30:
@@ -59,35 +56,24 @@ def get_real_market_analysis(symbol, timeframe):
 
         current_price = closes[-1]
 
-        if ema_9 > ema_21 and rsi > 50 and rsi < 70:
-            prediction = "🟢 **UP (CALL) - Strong Bullish Trend**"
+        # Forced Direction Logic for Binary Options (UP or DOWN)
+        if ema_9 >= ema_21 or rsi > 50:
+            prediction = "🟢 **UP (CALL) - Buy Signal**"
             confidence = "High"
-            reason = f"EMA 9 is above EMA 21 and RSI ({rsi:.2f}) is in the bullish zone."
-        elif ema_9 < ema_21 and rsi < 50 and rsi > 30:
-            prediction = "🔴 **DOWN (PUT) - Strong Bearish Trend**"
-            confidence = "High"
-            reason = f"EMA 9 is below EMA 21 and RSI ({rsi:.2f}) is in the bearish zone."
-        elif rsi >= 70:
-            prediction = "⚠️ **OVERBOUGHT (Caution)**"
-            confidence = "Low (Correction expected anytime)"
-            reason = f"RSI is extremely high ({rsi:.2f}), market is overbought."
-        elif rsi <= 30:
-            prediction = "⚠️ **OVERSOLD (Caution)**"
-            confidence = "Low (Bounce expected anytime)"
-            reason = f"RSI is extremely low ({rsi:.2f}), market is oversold."
+            reason = f"EMA and RSI ({rsi:.2f}) indicate upward momentum."
         else:
-            prediction = "🟡 **SIDEWAYS / NEUTRAL (Hold)**"
-            confidence = "Medium"
-            reason = f"Market is currently showing no clear direction (RSI: {rsi:.2f})."
+            prediction = "🔴 **DOWN (PUT) - Sell Signal**"
+            confidence = "High"
+            reason = f"EMA and RSI ({rsi:.2f}) indicate downward momentum."
 
         result_text = (
-            f"📊 *LIVE MARKET ANALYSIS* 📊\n\n"
+            f"📊 *1-MINUTE SIGNAL ANALYSIS* 📊\n\n"
             f"🔹 *Market/Pair:* `{symbol}`\n"
             f"⏱ *Timeframe:* `{timeframe}`\n"
             f"💰 *Live Price:* `{current_price:.2f}`\n\n"
             f"📈 *Prediction:* {prediction}\n"
             f"🎯 *Confidence:* {confidence}\n"
-            f"💡 *Analysis Reason:* {reason}"
+            f"💡 *Reason:* {reason}"
         )
         return result_text
 
@@ -147,7 +133,7 @@ def main():
                                      {"text": "🪙 SOL/USDT", "callback_data": "SOLUSDT"}]
                                 ]
                             }
-                            send_message(chat_id, "🤖 *Welcome to the Real-Time Trading Analysis Bot!*\n\nPlease select your preferred market:", reply_markup=keyboard)
+                            send_message(chat_id, "🤖 *Welcome to the 1-Minute Trading Signal Bot!*\n\nPlease select your preferred market:", reply_markup=keyboard)
 
                     elif "callback_query" in update:
                         query = update["callback_query"]
@@ -170,7 +156,7 @@ def main():
                             timeframe = data_cb.split("_")[1]
                             symbol = user_selections.get(chat_id, "BTCUSDT")
 
-                            edit_message(chat_id, message_id, f"🔄 Calculating live momentum and RSI for `{symbol}` on `{timeframe}` timeframe...")
+                            edit_message(chat_id, message_id, f"🔄 Analyzing 1-minute trend for `{symbol}` on `{timeframe}` timeframe...")
                             
                             analysis_result = get_real_market_analysis(symbol, timeframe)
                             send_message(chat_id, analysis_result)
