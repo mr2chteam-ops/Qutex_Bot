@@ -8,7 +8,7 @@ import telebot
 from telebot import types
 
 TOKEN = "8908381436:AAGeva6PKOPFPPUcx36tKUuUA4rQne5CmlM"
-DEVELOPER_NAME = "@HANTER_XD_OFFICIAL"
+DEV_LINK = "https://t.me/HANTER_XD_OFFICIAL
 
 bot = telebot.TeleBot(TOKEN)
 logging.basicConfig(level=logging.INFO)
@@ -106,7 +106,7 @@ def send_welcome(message):
   welcome_text = (
       f"🚀 **Welcome, {user_name} to Elite AI Signal Bot!** 🚀\n\n"
       f"Designed exclusively for short-term traders. Choose your preferred market and timeframe (**1m, 5m, 15m**) to get institutional-grade signals backed by real-time news & technical scans.\n\n"
-      f"👨‍💻 **Lead Developer:** {DEVELOPER_NAME}\n\n"
+      f"👨‍💻 **Lead Developer:** [@HANTER_XD_OFFICIAL]({DEV_LINK})\n\n"
       f"👇 *Select a market category below to begin:*"
   )
   bot.send_message(
@@ -228,7 +228,7 @@ def send_final_signal(call):
       f"📉 **Current RSI Score:** `{rsi}`\n"
       f"📢 **News Sentiment:** __{news_title}__\n"
       f"💡 **Technical & News Logic:** {reason}\n"
-      f"👨‍💻 **Developer:** {DEVELOPER_NAME}\n"
+      f"👨‍💻 **Developer:** [@HANTER_XD_OFFICIAL]({DEV_LINK})\n"
       f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
       f"⚠️ *Trading Risk Warning: Use proper money management and enter precisely at the given execution window.*"
   )
